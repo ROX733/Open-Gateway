@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:#fff;padding:20px}
+.card{background:#1e293b;max-width:600px;margin:20px auto;padding:20px;border-radius:12px}
+input,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none;box-sizing:border-box}
+button{background:#22c55e;color:#000;font-weight:bold;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #334155;padding:8px;font-size:12px;text-align:left}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Admin Panel - MyGateway</h2>
+<input id="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Admin Login</button>
+<p id="msg"></p>
+</div>
+
+<div class="card" id="panel" style="display:none">
+<h3>Add Balance</h3>
+<input id="uEmail" placeholder="User Email to Add Balance">
+<input id="amt" type="number" placeholder="Amount">
+<button onclick="addBal()">Add Balance</button>
+<p id="addMsg"></p>
+<button onclick="loadUsers()">Load All Users</button>
+<button onclick="loadTx()">Load All Transactions</button>
+<div id="data"></div>
+</div>
+
+<script>
+let token='';
+async function login(){
+  const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})});
+  const d=await res.json();
+  if(!d.isAdmin){ msg.innerText='Not Admin'; return; }
+  token=d.token; msg.innerText='Admin Login OK'; document.getElementById('panel').style.display='block';
+}
+async function addBal(){
+  const res=await fetch('/api/admin/add-balance',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({email:uEmail.value,amount:amt.value})});
+  const d=await res.json(); addMsg.innerText= d.success ? 'Added! New Bal: '+d.balance : d.error;
+}
+async function loadUsers(){
+  const res=await fetch('/api/admin/users',{headers:{'Authorization':'Bearer '+token}}); const users=await res.json();
+  data.innerHTML='<table><tr><th>Email</th><th>Balance</th><th>API Key</th></tr>'+users.map(u=>`<tr><td>${u.email}</td><td>${u.balance}</td><td>${u.apiKey}</td></tr>`).join('')+'</table>';
+}
+async function loadTx(){
+  const res=await fetch('/api/admin/all-transactions',{headers:{'Authorization':'Bearer '+token}}); const tx=await res.json();
+  data.innerHTML=tx.map(t=>`${t.createdAt} - ${t.type} ${t.amount} from ${t.fromUser} to ${t.toUser}<br>`).join('');
+}
+</script>
+</body>
+</html>
